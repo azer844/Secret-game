@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Resident Evil Requiem sort enfin",
+    "excerpt": "Capcom signe un retour oppressant à Raccoon City — on a joué 3h, nos impressions.",
+    "image": "./assets/hero.jpg",
+    "date": "27/02/2026",
+    "tag": "Actu"
+  },
+  {
+    "title": "Nioh 3 : la difficulté au service du spectacle",
+    "excerpt": "Team Ninja muscle sa formule : deux styles de combat et des boss mémorables.",
+    "image": "./assets/hero.jpg",
+    "date": "06/02/2026",
+    "tag": "Actu"
+  },
+  {
+    "title": "Dragon Quest VII Reimagined : le JRPG fait peau neuve",
+    "excerpt": "Remake 3D, double vocation, rythme amélioré — un classique transformé.",
+    "image": "./assets/hero.jpg",
+    "date": "05/02/2026",
+    "tag": "Actu"
+  }
+]
