@@ -2,47 +2,24 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escape The Dark - 3D Horror</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Escape The Dark 3D</title>
     <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-            background-color: #000; font-family: 'Courier New', Courier, monospace; user-select: none;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #020202; font-family: monospace; user-select: none; -webkit-user-select: none; }
         #canvas-container { width: 100%; height: 100%; display: block; }
-        #ui {
-            position: absolute; top: 20px; left: 20px; color: #ff3333; font-size: 1.2rem;
-            text-shadow: 0 0 5px #000; pointer-events: none; z-index: 10;
-        }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
-            background: rgba(255, 255, 255, 0.4); border-radius: 50%; transform: translate(-50%, -50%);
-            pointer-events: none; z-index: 10;
-        }
-        .joystick-zone {
-            position: absolute; bottom: 30px; width: 100px; height: 100px;
-            background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%; touch-action: none; z-index: 10;
-        }
+        #ui { position: absolute; top: 20px; left: 20px; color: #ff3333; font-size: 1.2rem; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 10; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
+        .joystick-zone { position: absolute; bottom: 30px; width: 90px; height: 90px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; touch-action: none; z-index: 10; }
         #left-joystick { left: 40px; }
-        #action-btn {
-            position: absolute; bottom: 45px; right: 40px; width: 70px; height: 70px;
-            background: rgba(255, 0, 0, 0.2); border: 2px solid #ff0000; color: #ff3333;
-            border-radius: 50%; font-weight: bold; display: flex; align-items: center;
-            justify-content: center; font-size: 0.9rem; z-index: 10;
-        }
-        #screen-msg {
-            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            color: #fff; font-size: 1.5rem; text-align: center; background: rgba(0,0,0,0.7);
-            padding: 15px; border-radius: 5px; display: none; pointer-events: none; z-index: 10;
-        }
+        #action-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(150, 0, 0, 0.4); border: 3px solid #ff0000; color: #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10; text-shadow: 1px 1px 2px #000; }
+        #screen-msg { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #ff0000; font-size: 1.4rem; font-weight: bold; text-align: center; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #550000; border-radius: 5px; display: none; pointer-events: none; z-index: 10; }
     </style>
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
     <div id="ui">
-        <div id="objective">Objectif : Trouver la clé dans le couloir sombre</div>
-        <div id="inventory" style="margin-top: 5px; color: #aaa;">Inventaire : Aucun objet</div>
+        <div id="objective">🕹️ OBJECTIF : Avancez au fond et trouvez la clé rouge</div>
+        <div id="inventory" style="margin-top: 5px; color: #bbb;">Inventaire : Aucun</div>
     </div>
     <div id="crosshair"></div>
     <div id="screen-msg"></div>
@@ -52,129 +29,157 @@
     <script>
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x050505, 0.15);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.FogExp2(0x020205, 0.18);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
-        camera.position.set(0, 1.6, 12); 
-        const flashlight = new THREE.SpotLight(0xffffff, 3, 15, Math.PI / 5, 0.5, 1);
-        flashlight.castShadow = true;
+
+        camera.position.set(0, 1.5, 12); 
+
+        // Lampe torche puissante et fixe (pas de bug d'allumage)
+        const flashlight = new THREE.PointLight(0xffffff, 4, 18);
         scene.add(flashlight);
-        scene.add(flashlight.target);
-        const ambientLight = new THREE.AmbientLight(0x0a0a14);
+
+        const ambientLight = new THREE.AmbientLight(0x111122);
         scene.add(ambientLight);
-        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.9 });
-        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.5 });
-        const floorGeo = new THREE.PlaneGeometry(6, 30);
-        const floor = new THREE.Mesh(floorGeo, floorMaterial);
+
+        // Matériaux basiques sans textures (Ultra fluides et visibles immédiatement)
+        const wallMat = new THREE.MeshBasicMaterial({ color: 0x222226 });
+        const floorMat = new THREE.MeshBasicMaterial({ color: 0x111114 });
+        const ceilingMat = new THREE.MeshBasicMaterial({ color: 0x08080a });
+
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 40), floorMat);
         floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
         scene.add(floor);
-        const wallGeo = new THREE.BoxGeometry(0.2, 4, 30);
-        const leftWall = new THREE.Mesh(wallGeo, wallMaterial);
-        leftWall.position.set(-3, 2, 0);
-        leftWall.castShadow = true; leftWall.receiveShadow = true;
+
+        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(8, 40), ceilingMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = 3.5;
+        scene.add(ceiling);
+
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4, 40), wallMat);
+        leftWall.position.set(-4, 2, 0);
         scene.add(leftWall);
+
         const rightWall = leftWall.clone();
-        rightWall.position.x = 3;
+        rightWall.position.x = 4;
         scene.add(rightWall);
-        const backWallGeo = new THREE.BoxGeometry(6, 4, 0.2);
-        const backWall = new THREE.Mesh(backWallGeo, wallMaterial);
-        backWall.position.set(0, 2, -15);
+
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 0.2), wallMat);
+        backWall.position.set(0, 2, -20);
         scene.add(backWall);
-        const doorGeo = new THREE.BoxGeometry(1.5, 2.5, 0.1);
-        const doorMat = new THREE.MeshStandardMaterial({ color: 0x501010, roughness: 0.6 });
-        const door = new THREE.Mesh(doorGeo, doorMat);
-        door.position.set(0, 1.25, -14.8);
+
+        // La porte (Gros bloc marron clair)
+        const door = new THREE.Mesh(new THREE.BoxGeometry(2, 2.8, 0.2), new THREE.MeshBasicMaterial({ color: 0x663311 }));
+        door.position.set(0, 1.4, -19.8);
         scene.add(door);
-        const boxGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-        const boxMat = new THREE.MeshStandardMaterial({ color: 0x443322 });
-        const chest = new THREE.Mesh(boxGeo, boxMat);
-        chest.position.set(-2.2, 0.3, 2);
+
+        // Le coffre contenant la clé (Gros bloc rouge vif)
+        const chest = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        chest.position.set(-2.5, 0.4, -5);
         scene.add(chest);
-        let gameState = {
-            hasKey: false, boxOpened: false, escaped: false, moveForward: 0, touchX: 0, touchY: 0
-        };
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playScream() {
-            try {
-                let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 1.5);
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(); osc.stop(audioCtx.currentTime + 1.5);
-            } catch(e){}
-        }
+        let gameState = { hasKey: false, boxOpened: false, escaped: false, moveForward: 0, touchX: 0, touchY: 0 };
+
+        // Commandes tactiles optimisées pour l'iPad
         let yaw = 0, pitch = 0;
         window.addEventListener('touchmove', (e) => {
             for(let i=0; i<e.touches.length; i++) {
                 let t = e.touches[i];
                 if(t.clientX > window.innerWidth / 2) {
                     if(gameState.touchX !== 0) {
-                        yaw -= (t.clientX - gameState.touchX) * 0.005;
-                        pitch -= (t.clientY - gameState.touchY) * 0.005;
-                        pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
+                        yaw -= (t.clientX - gameState.touchX) * 0.007;
+                        pitch -= (t.clientY - gameState.touchY) * 0.007;
+                        pitch = Math.max(-Math.PI/4, Math.min(Math.PI/4, pitch));
                     }
                     gameState.touchX = t.clientX; gameState.touchY = t.clientY;
                 }
             }
-        });
+        }, { passive: true });
+
         window.addEventListener('touchend', () => { gameState.touchX = 0; gameState.touchY = 0; });
+
         const joystick = document.getElementById('left-joystick');
         joystick.addEventListener('touchmove', (e) => {
-            const touch = e.touches; const rect = joystick.getBoundingClientRect();
-            const center = { x: rect.left + 50, y: rect.top + 50 }; const dy = touch.clientY - center.y;
-            if(dy < -15) gameState.moveForward = 1;
-            else if(dy > 15) gameState.moveForward = -1;
+            const touch = e.touches[0];
+            const rect = joystick.getBoundingClientRect();
+            const centerY = rect.top + (rect.height / 2);
+            if (touch.clientY < centerY - 10) gameState.moveForward = 1;
+            else if (touch.clientY > centerY + 10) gameState.moveForward = -1;
             else gameState.moveForward = 0;
-        });
+        }, { passive: true });
+
         joystick.addEventListener('touchend', () => { gameState.moveForward = 0; });
+
+        // Système d'interactions cliquables
         const actionBtn = document.getElementById('action-btn');
-        actionBtn.addEventListener('touchstart', () => {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
+        actionBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             let distToChest = camera.position.distanceTo(chest.position);
             let distToDoor = camera.position.distanceTo(door.position);
-            if (distToChest < 3.5 && !gameState.boxOpened) {
-                gameState.boxOpened = true; gameState.hasKey = true; chest.position.y = -2;
-                showMsg("Vous avez trouvé une clé rouillée !");
+
+            if (distToChest < 4 && !gameState.boxOpened) {
+                gameState.boxOpened = true;
+                gameState.hasKey = true;
+                chest.position.y = -5; // Cache le bloc rouge
+                showMsg("🔑 Clé ramassée ! Allez vers la porte au fond.");
                 document.getElementById('inventory').innerText = "Inventaire : Clé de la porte";
-                playScream();
             } 
-            else if (distToDoor < 3.5) {
+            else if (distToDoor < 4) {
                 if (gameState.hasKey) {
-                    gameState.escaped = true; showMsg("VOUS AVEZ SURVÉCU ! ✨"); door.position.x = 2;
-                } else { showMsg("La porte est fermée à clé..."); }
-            } else { showMsg("Rien ici. Fouillez le couloir."); }
+                    gameState.escaped = true;
+                    showMsg("🎉 BIEN JOUÉ ! Vous avez survécu !");
+                    door.position.position.y = -5; // Ouvre la porte
+                } else {
+                    showMsg("🔒 La porte est verrouillée. Trouvez le bloc rouge.");
+                }
+            } else {
+                showMsg("Rapprochez-vous du bloc rouge pour ramasser la clé.");
+            }
         });
+
         function showMsg(text) {
-            const msgEl = document.getElementById('screen-msg'); msgEl.innerText = text;
-            msgEl.style.display = 'block'; setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+            const msgEl = document.getElementById('screen-msg');
+            msgEl.innerText = text;
+            msgEl.style.display = 'block';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3500);
         }
+
+        // Boucle d'animation stable
         function animate() {
             requestAnimationFrame(animate);
+
             if (!gameState.escaped) {
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
                 const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                direction.y = 0; direction.normalize();
-                if (gameState.moveForward !== 0) { camera.position.addScaledVector(direction, gameState.moveForward * 0.08); }
-                camera.position.x = Math.max(-2.5, Math.min(2.5, camera.position.x));
-                camera.position.z = Math.max(-14, Math.min(14, camera.position.z));
+                direction.y = 0;
+                direction.normalize();
+
+                if (gameState.moveForward !== 0) {
+                    camera.position.addScaledVector(direction, gameState.moveForward * 0.1);
+                }
+
+                // Collisions basiques pour ne pas traverser les murs du couloir
+                camera.position.x = Math.max(-3.4, Math.min(3.4, camera.position.x));
+                camera.position.z = Math.max(-19, Math.min(13, camera.position.z));
             }
+
+            // La lumière suit la caméra
             flashlight.position.copy(camera.position);
-            const targetPosition = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
-            flashlight.target.position.copy(targetPosition);
-            if(Math.random() > 0.98) { flashlight.intensity = Math.random() * 3; } else { flashlight.intensity = 3; }
+
             renderer.render(scene, camera);
         }
+
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
         animate();
     </script>
 </body>
 </html>
+
