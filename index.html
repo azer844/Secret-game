@@ -1,1 +1,225 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>VoxelStrike – Score + Tablette</title><style>    body { margin: 0; background: #111; overflow: hidden; }    canvas { background: #222; display: block; margin: auto; }    /* Joystick */    #joystick-area {        position: fixed;        bottom: 20px; left: 20px;        width: 150px; height: 150px;        background: rgba(255,255,255,0.1);        border-radius: 50%;        touch-action: none;    }    #joystick {        position: absolute;        width: 60px; height: 60px;        background: rgba(255,255,255,0.4);        border-radius: 50%;        top: 45px; left: 45px;        transition: 0.05s;    }    /* Bouton tirer */    #fireBtn {        position: fixed;        bottom: 40px; right: 40px;        width: 100px; height: 100px;        background: rgba(255,0,0,0.5);        border-radius: 50%;        touch-action: none;        display: flex;        justify-content: center;        align-items: center;        color: white; font-size: 20px;        user-select: none;    }    /* Score */    #score {        position: fixed;        top: 10px; left: 10px;        color: white;        font-size: 30px;        font-family: Arial;        z-index: 999;    }</style></head><body><div id="score">Score : 0</div><canvas id="game" width="900" height="600"></canvas><!-- Zone joystick --><div id="joystick-area">    <div id="joystick"></div></div><!-- Bouton tirer --><div id="fireBtn">🔥</div><script>const c = document.getElementById("game");const ctx = c.getContext("2d");// Scorelet score = 0;const scoreDiv = document.getElementById("score");// Joueurlet player = { x: 450, y: 300, speed: 3, size: 20 };// Déplacement tactilelet moveX = 0, moveY = 0;// Joystickconst area = document.getElementById("joystick-area");const stick = document.getElementById("joystick");area.addEventListener("touchmove", (e) => {    e.preventDefault();    let rect = area.getBoundingClientRect();    let t = e.touches[0];    let x = t.clientX - rect.left;    let y = t.clientY - rect.top;    let dx = x - 75;    let dy = y - 75;    let dist = Math.sqrt(dx*dx + dy*dy);    if (dist > 50) {        dx = dx / dist * 50;        dy = dy / dist * 50;    }    stick.style.left = (45 + dx) + "px";    stick.style.top = (45 + dy) + "px";    moveX = dx / 50;    moveY = dy / 50;});area.addEventListener("touchend", () => {    stick.style.left = "45px";    stick.style.top = "45px";    moveX = 0;    moveY = 0;});// Blocs voxellet blocks = [];for (let i = 0; i < 120; i++) {    blocks.push({        x: Math.random()*880,        y: Math.random()*580,        size: 20,        alive: true    });}// Tirslet bullets = [];// Tir tactile (tir aléatoire directionnel)document.getElementById("fireBtn").addEventListener("touchstart", () => {    bullets.push({        x: player.x,        y: player.y,        dx: 6 * (Math.random()*2 - 1),        dy: 6 * (Math.random()*2 - 1)    });});// Tir souris (vers la souris)document.addEventListener("click", (e) => {    const rect = c.getBoundingClientRect();    const mx = e.clientX - rect.left;    const my = e.clientY - rect.top;    const angle = Math.atan2(my - player.y, mx - player.x);    bullets.push({        x: player.x,        y: player.y,        dx: Math.cos(angle)*8,        dy: Math.sin(angle)*8    });});// Boucle du jeufunction loop() {    ctx.clearRect(0,0,c.width,c.height);    // Déplacement joueur    player.x += moveX * player.speed;    player.y += moveY * player.speed;    // Dessin joueur    ctx.fillStyle = "cyan";    ctx.fillRect(player.x - 10, player.y - 10, player.size, player.size);    // Blocs    ctx.fillStyle = "orange";    blocks.forEach(b => {        if (b.alive) ctx.fillRect(b.x, b.y, b.size, b.size);    });    // Balles    ctx.fillStyle = "white";    bullets.forEach(b => {        b.x += b.dx;        b.y += b.dy;        ctx.fillRect(b.x, b.y, 5, 5);        // Collision balle/bloc        blocks.forEach(block => {            if (block.alive &&                b.x < block.x + block.size &&                b.x + 5 > block.x &&                b.y < block.y + block.size &&                b.y + 5 > block.y) {                block.alive = false;                score += 10;                    // +10 points                scoreDiv.textContent = "Score : " + score;            }        });    });    requestAnimationFrame(loop);}loop();</script></body></html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Le Projet Snow</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050505;
+            color: #d11a2a;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            padding: 20px;
+        }
+        #game-container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(15, 0, 0, 0.85);
+            padding: 30px;
+            border: 2px solid #5a0000;
+            box-shadow: 0 0 20px rgba(90, 0, 0, 0.6);
+            border-radius: 5px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0000;
+            animation: flicker 3s infinite alternate;
+        }
+        #text {
+            color: #cccccc;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            min-height: 100px;
+        }
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        button {
+            background: #200000;
+            color: #ff3333;
+            border: 1px solid #7a0000;
+            padding: 12px 20px;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #ff0000;
+            color: #000;
+            box-shadow: 0 0 15px #ff0000;
+            font-weight: bold;
+        }
+        #status-bar {
+            margin-top: 25px;
+            font-size: 0.9rem;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px dashed #444;
+            padding-top: 15px;
+        }
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { text-shadow: 0 0 10px #ff0000; }
+            20%, 24%, 55% { text-shadow: none; color: #110000; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1 id="title">Seul dans le noir</h1>
+        <div id="text">Chargement de l'histoire...</div>
+        <div id="choices" class="btn-container"></div>
+        
+        <div id="status-bar">
+            <span id="panic">Panique : 0%</span>
+            <span id="item">Objet : Aucun</span>
+        </div>
+    </div>
+
+    <!-- Synthétiseur audio intégré pour les bruitages d'ambiance d'horreur sans fichiers externes -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playScareSound() {
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.8);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.8);
+            } catch(e) {}
+        }
+
+        // Variables d'état du jeu
+        let panicLevel = 0;
+        let hasKey = false;
+
+        const story = {
+            start: {
+                text: "Vous vous réveillez sur un sol en béton glacé. Vos yeux s'habituent à la pénombre. Une lourde porte en fer fait face à vous. Une odeur de brûlé flotte dans l'air.",
+                choices: [
+                    { text: "Fouiller le tas de débris dans le coin", juste: () => updatePanic(15), next: 'fouiller' },
+                    { text: "Essayer d'ouvrir la porte en fer", juste: () => {}, next: 'porte' }
+                ]
+            },
+            fouiller: {
+                text: "Vous plongez vos mains dans les débris sombres. Un bruit de grattement retentit juste à côté de vous ! Mais vous trouvez une vieille clé rouillée.",
+                choices: [
+                    { text: "Prendre la clé et aller vers la porte", juste: () => { hasKey = true; updateItem("Clé rouillée"); }, next: 'porte' },
+                    { text: "Paniquer et reculer brusquement", juste: () => updatePanic(30), next: 'start' }
+                ]
+            },
+            porte: {
+                text: "La porte est solidement verrouillée. Un judas en fer est fermé de l'autre côté. Qu'allez-vous faire ?",
+                choices: [
+                    { text: "Frapper violemment contre la porte", juste: () => { updatePanic(20); playScareSound(); }, next: 'frapper' },
+                    { text: "Utiliser la clé rouillée", juste: () => {}, next: 'ouvrir' },
+                    { text: "Retourner examiner la pièce", juste: () => {}, next: 'start' }
+                ]
+            },
+            frapper: {
+                text: "Un cri strident répond à vos coups derrière la porte ! Vos pulsations cardiaques s'accélèrent. Quelque chose approche de la porte...",
+                choices: [
+                    { text: "Se cacher dans l'ombre", juste: () => updatePanic(10), next: 'start' },
+                    { text: "Utiliser la clé en vitesse !", juste: () => {}, next: 'ouvrir' }
+                ]
+            },
+            ouvrir: {
+                text: "Vous insérez la clé. Elle tourne dans un grincement effroyable. La porte s'entrouvre sur un long couloir brumeux. Vous êtes libre... pour l'instant.",
+                choices: [
+                    { text: "Recommencer l'expérience", juste: () => resetGame(), next: 'start' }
+                ]
+            },
+            gameover: {
+                text: "Votre cœur lâche sous la terreur. La panique a pris le contrôle de votre esprit. Vous faites désormais partie des ombres de cette pièce.",
+                choices: [
+                    { text: "Tenter une nouvelle fois", juste: () => resetGame(), next: 'start' }
+                ]
+            }
+        };
+
+        function updatePanic(amount) {
+            panicLevel += amount;
+            if (panicLevel > 100) panicLevel = 100;
+            document.getElementById('panic').innerText = `Panique : ${panicLevel}%`;
+            document.body.style.backgroundColor = `rgb(${panicLevel * 0.4}, 5, 5)`;
+            
+            if (panicLevel >= 100) {
+                goToScene('gameover');
+            }
+        }
+
+        function updateItem(itemName) {
+            document.getElementById('item').innerText = `Objet : ${itemName}`;
+        }
+
+        function resetGame() {
+            panicLevel = 0;
+            hasKey = false;
+            updatePanic(0);
+            updateItem("Aucun");
+        }
+
+        function goToScene(sceneKey) {
+            // Sécurité si le joueur clique sur la porte sans clé
+            if (sceneKey === 'ouvrir' && !hasKey) {
+                document.getElementById('text').innerText = "La porte refuse de bouger. Il vous faut un objet pour l'ouvrir.";
+                return;
+            }
+
+            const scene = story[sceneKey];
+            document.getElementById('text').innerText = scene.text;
+            
+            if(sceneKey === 'gameover' || sceneKey === 'ouvrir') {
+                playScareSound();
+            }
+
+            const choicesContainer = document.getElementById('choices');
+            choicesContainer.innerHTML = '';
+
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.innerText = choice.text;
+                button.onclick = () => {
+                    choice.juste();
+                    goToScene(choice.next);
+                };
+                choicesContainer.appendChild(button);
+            });
+        }
+
+        // Lancement initial au premier clic sur l'écran (nécessaire pour activer le son sur iPad)
+        window.addEventListener('click', () => {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }, { once: true });
+
+        goToScene('start');
+    </script>
+</body>
+</html>
