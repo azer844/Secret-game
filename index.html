@@ -5,21 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Escape The Dark 3D</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #020202; font-family: monospace; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: monospace; user-select: none; -webkit-user-select: none; }
         #canvas-container { width: 100%; height: 100%; display: block; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #ff3333; font-size: 1.2rem; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 10; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
-        .joystick-zone { position: absolute; bottom: 30px; width: 90px; height: 90px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; touch-action: none; z-index: 10; }
+        #start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0a0000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        #start-btn { padding: 20px 40px; font-size: 1.5rem; background: #ff0000; color: #fff; border: 2px solid #fff; font-family: inherit; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px #ff0000; border-radius: 5px; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #ff3333; font-size: 1.2rem; text-shadow: 2px 2px 4px #000; pointer-events: none; z-index: 10; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background: rgba(255,255,255,0.6); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; display: none; }
+        .joystick-zone { position: absolute; bottom: 30px; width: 90px; height: 90px; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; touch-action: none; z-index: 10; display: none; }
         #left-joystick { left: 40px; }
-        #action-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(150, 0, 0, 0.4); border: 3px solid #ff0000; color: #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10; text-shadow: 1px 1px 2px #000; }
+        #action-btn { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(150, 0, 0, 0.4); border: 3px solid #ff0000; color: #fff; border-radius: 50%; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10; display: none; text-shadow: 1px 1px 2px #000; }
         #screen-msg { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); color: #ff0000; font-size: 1.4rem; font-weight: bold; text-align: center; background: rgba(0,0,0,0.85); padding: 15px; border: 1px solid #550000; border-radius: 5px; display: none; pointer-events: none; z-index: 10; }
     </style>
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
+    <div id="start-screen">
+        <h1 style="color: #ff0000; margin-bottom: 30px; letter-spacing: 3px;">ESCAPE THE DARK 3D</h1>
+        <button id="start-btn">DÉMARRER LE JEU</button>
+    </div>
     <div id="ui">
-        <div id="objective">🕹️ OBJECTIF : Avancez au fond et trouvez la clé rouge</div>
-        <div id="inventory" style="margin-top: 5px; color: #bbb;">Inventaire : Aucun</div>
+        <div id="objective">🕹️ OBJECTIF : Allez au fond et trouvez la clé (bloc rouge)</div>
+        <div id="inventory" style="margin-top: 5px; color: #aaa;">Inventaire : Aucun</div>
     </div>
     <div id="crosshair"></div>
     <div id="screen-msg"></div>
@@ -29,36 +35,27 @@
     <script>
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020205);
-        scene.fog = new THREE.FogExp2(0x020205, 0.18);
+        scene.background = new THREE.Color(0x050508);
+        scene.fog = new THREE.FogExp2(0x050508, 0.15);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         container.appendChild(renderer.domElement);
 
         camera.position.set(0, 1.5, 12); 
 
-        // Lampe torche puissante et fixe (pas de bug d'allumage)
-        const flashlight = new THREE.PointLight(0xffffff, 4, 18);
+        const flashlight = new THREE.PointLight(0xffffff, 5, 20);
         scene.add(flashlight);
+        scene.add(new THREE.AmbientLight(0x222233));
 
-        const ambientLight = new THREE.AmbientLight(0x111122);
-        scene.add(ambientLight);
-
-        // Matériaux basiques sans textures (Ultra fluides et visibles immédiatement)
-        const wallMat = new THREE.MeshBasicMaterial({ color: 0x222226 });
-        const floorMat = new THREE.MeshBasicMaterial({ color: 0x111114 });
-        const ceilingMat = new THREE.MeshBasicMaterial({ color: 0x08080a });
+        // Création visuelle stable (sans ombres lourdes qui font planter Safari)
+        const wallMat = new THREE.MeshBasicMaterial({ color: 0x33333a });
+        const floorMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1f });
 
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 40), floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
-
-        const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(8, 40), ceilingMat);
-        ceiling.rotation.x = Math.PI / 2;
-        ceiling.position.y = 3.5;
-        scene.add(ceiling);
 
         const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4, 40), wallMat);
         leftWall.position.set(-4, 2, 0);
@@ -72,20 +69,33 @@
         backWall.position.set(0, 2, -20);
         scene.add(backWall);
 
-        // La porte (Gros bloc marron clair)
-        const door = new THREE.Mesh(new THREE.BoxGeometry(2, 2.8, 0.2), new THREE.MeshBasicMaterial({ color: 0x663311 }));
+        const door = new THREE.Mesh(new THREE.BoxGeometry(2, 2.8, 0.2), new THREE.MeshBasicMaterial({ color: 0x552200 }));
         door.position.set(0, 1.4, -19.8);
         scene.add(door);
 
-        // Le coffre contenant la clé (Gros bloc rouge vif)
         const chest = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-        chest.position.set(-2.5, 0.4, -5);
+        chest.position.set(-2.5, 0.4, -2);
         scene.add(chest);
-        let gameState = { hasKey: false, boxOpened: false, escaped: false, moveForward: 0, touchX: 0, touchY: 0 };
+        let gameState = { hasKey: false, boxOpened: false, escaped: false, moveForward: 0, touchX: 0, touchY: 0, active: false };
 
-        // Commandes tactiles optimisées pour l'iPad
+        // Déverrouillage iPad au clic sur DÉMARRER
+        document.getElementById('start-btn').addEventListener('click', () => {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('ui').style.display = 'block';
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('left-joystick').style.display = 'block';
+            document.getElementById('action-btn').style.display = 'flex';
+            gameState.active = true;
+            
+            // Forcer le redimensionnement pour éviter l'écran noir de Safari
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
         let yaw = 0, pitch = 0;
         window.addEventListener('touchmove', (e) => {
+            if(!gameState.active) return;
             for(let i=0; i<e.touches.length; i++) {
                 let t = e.touches[i];
                 if(t.clientX > window.innerWidth / 2) {
@@ -103,6 +113,7 @@
 
         const joystick = document.getElementById('left-joystick');
         joystick.addEventListener('touchmove', (e) => {
+            if(!gameState.active) return;
             const touch = e.touches[0];
             const rect = joystick.getBoundingClientRect();
             const centerY = rect.top + (rect.height / 2);
@@ -113,62 +124,53 @@
 
         joystick.addEventListener('touchend', () => { gameState.moveForward = 0; });
 
-        // Système d'interactions cliquables
         const actionBtn = document.getElementById('action-btn');
         actionBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            if(!gameState.active) return;
             let distToChest = camera.position.distanceTo(chest.position);
             let distToDoor = camera.position.distanceTo(door.position);
 
             if (distToChest < 4 && !gameState.boxOpened) {
                 gameState.boxOpened = true;
                 gameState.hasKey = true;
-                chest.position.y = -5; // Cache le bloc rouge
-                showMsg("🔑 Clé ramassée ! Allez vers la porte au fond.");
-                document.getElementById('inventory').innerText = "Inventaire : Clé de la porte";
+                chest.position.y = -5;
+                showMsg("🔑 Clé rouge trouvée ! Avancez vers la porte au fond.");
+                document.getElementById('inventory').innerText = "Inventaire : Clé rouge";
             } 
             else if (distToDoor < 4) {
                 if (gameState.hasKey) {
                     gameState.escaped = true;
-                    showMsg("🎉 BIEN JOUÉ ! Vous avez survécu !");
-                    door.position.position.y = -5; // Ouvre la porte
+                    showMsg("🎉 TU AS REUSSI A T'ÉCHAPPER ! Bravo !");
+                    door.position.y = -5;
                 } else {
-                    showMsg("🔒 La porte est verrouillée. Trouvez le bloc rouge.");
+                    showMsg("🔒 La porte est fermée. Trouve le bloc rouge au début du couloir.");
                 }
             } else {
-                showMsg("Rapprochez-vous du bloc rouge pour ramasser la clé.");
+                showMsg("Rapproche-toi du bloc rouge ou de la porte pour interagir.");
             }
         });
 
         function showMsg(text) {
             const msgEl = document.getElementById('screen-msg');
-            msgEl.innerText = text;
-            msgEl.style.display = 'block';
-            setTimeout(() => { msgEl.style.display = 'none'; }, 3500);
+            msgEl.innerText = text; msgEl.style.display = 'block';
+            setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
         }
 
-        // Boucle d'animation stable
         function animate() {
             requestAnimationFrame(animate);
-
-            if (!gameState.escaped) {
+            if (gameState.active && !gameState.escaped) {
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
                 const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                direction.y = 0;
-                direction.normalize();
+                direction.y = 0; direction.normalize();
 
                 if (gameState.moveForward !== 0) {
-                    camera.position.addScaledVector(direction, gameState.moveForward * 0.1);
+                    camera.position.addScaledVector(direction, gameState.moveForward * 0.09);
                 }
-
-                // Collisions basiques pour ne pas traverser les murs du couloir
-                camera.position.x = Math.max(-3.4, Math.min(3.4, camera.position.x));
+                camera.position.x = Math.max(-3.5, Math.min(3.5, camera.position.x));
                 camera.position.z = Math.max(-19, Math.min(13, camera.position.z));
             }
-
-            // La lumière suit la caméra
             flashlight.position.copy(camera.position);
-
             renderer.render(scene, camera);
         }
 
